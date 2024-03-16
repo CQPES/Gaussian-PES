@@ -10,6 +10,22 @@ Interface for invoking PES from Gaussian
 
 `GauDriver` is an I/O driver for parsing Gaussian internal input file and writing the results calculated on PES into the internal output file. Therefore, One can use `Gaussian` as an optimizer and does geometrical tasks, e.g. optimization, transition state, IRC, scan, and etc.
 
+## Installation
+
+Via pip
+
+```bash
+$ pip install git+https://github.com/CQPES/Gaussian-PES.git
+```
+
+From source
+
+```bash
+$ git clone https://github.com/CQPES/Gaussian-PES.git
+$ cd Gaussian-PES
+$ pip install .
+```
+
 ## Usage
 
 Here is an example of defining a PES model and invoking it from Gaussian.

@@ -77,3 +77,7 @@ H2O
 
 
 ```
+
+## Reference
+
+(1) Gaussian, Inc. (n.d.). _External_. Gaussian.com. Retrieved March 16, 2024, from https://gaussian.com/external/

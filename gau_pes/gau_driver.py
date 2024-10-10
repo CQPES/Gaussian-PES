@@ -3,11 +3,38 @@ from typing import Union
 
 import numpy as np
 
+PERIODIC_TABLE: list[str] = [
+    "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg", "Al", "Si", "P", "S", "Cl",
+    "Ar", "K", "Ca", "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As",
+    "Se", "Br", "Kr", "Rb", "Sr", "Y", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In",
+    "Sn", "Sb", "Te", "I", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb",
+    "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl",
+    "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U", "Np", "Pu", "Am", "Cm", "Bk",
+    "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn", "Nh",
+    "Fl", "Mc", "Lv", "Ts", "Og",
+]
+
 # constants
-_ANG2BOHR = 1.8897259886
+_ANG2BOHR: float = 1.8897259886
 
 
 class GauDriver:
+    layer: str
+    input_file: str
+    output_file: str
+    msg_file: str
+    fchk_file: str
+    mat_el_file: str
+
+    natom: int
+    derivs: int
+    charge: int
+    spin: int
+
+    sysmbols: list[str]
+    atoms_nuc: list[int]
+    coords: np.ndarray
+
     def __init__(self) -> None:
         (layer, InputFile, OutputFile, MsgFile,
          FChkFile, MatElFile) = sys.argv[1:]
@@ -19,7 +46,9 @@ class GauDriver:
         self.fchk_file = FChkFile
         self.mat_el_file = MatElFile
 
-        coords = []
+        coords: list[list[float]] = []
+        atoms_nuc: list[int] = []
+        sysmbols: list[str] = []
         with open(self.input_file, "r") as f:
             (natom, derivs, charge, spin) = \
                 [int(x) for x in f.readline().split()]
@@ -28,12 +57,15 @@ class GauDriver:
             self.derivs = derivs
             self.charge = charge
             self.spin = spin
-
             for _ in range(self.natom):
                 arr = f.readline().split()
+                nuc = int(arr[0])
+                atoms_nuc.append(nuc)
+                sysmbols.append(PERIODIC_TABLE[nuc-1])
                 coord = [(float(x) / _ANG2BOHR) for x in arr[1:4]]
                 coords.append(coord)
 
+        self.atoms_nuc = atoms_nuc
         self.coords = np.array(coords)
 
     def write(
@@ -75,3 +107,15 @@ class GauDriver:
 
         with open(self.output_file, "w") as f:
             f.write(contents)
+
+    def xyz(self, comment: str = "") -> str:
+        xyz_str = f"{self.natom}\n{comment}\n"
+        for sym, coord in zip(self.sysmbols, self.coords):
+            xyz_str += f"  {sym}{coord[0]:>23.17e}{coord[1]:>23.17e}{coord[2]:>23.17e}\n"
+        return xyz_str
+
+    def pyscf_atom(self) -> str:
+        atom_str = ""
+        for nuc, coord in zip(self.atoms_nuc, self.coords):
+            atom_str += f"{nuc}{coord[0]:>23.17e}{coord[1]:>23.17e}{coord[2]:>23.17e};"
+        return atom_str

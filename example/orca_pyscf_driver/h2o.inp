@@ -1,0 +1,9 @@
+! ExtOpt verytightopt
+
+%method
+    ProgExt "/path/to/h2o.py"
+end
+
+%maxcore 4096
+
+* xyzfile 0 1 h2o_init.xyz

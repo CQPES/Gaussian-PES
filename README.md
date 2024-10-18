@@ -32,6 +32,7 @@ Here is an example of defining a PES model and invoking it from Gaussian.
 
 ```python
 # h2o_pes.py
+import numpy as np
 from gau_pes import BasePES
 
 _NUM_ATOMS = 3  # number of atoms of your system
@@ -59,7 +60,7 @@ class H2OPES(BasePES):
 if __name__ == "__main__":
     from gau_pes import GauDriver
 
-    driver = GauDriver()
+    driver = GauDriver.from_stdio()
     pes = H2OPES()
 
     driver.write(

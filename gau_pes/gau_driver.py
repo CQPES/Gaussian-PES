@@ -1,25 +1,54 @@
-import sys
-from typing import Union
+from __future__ import annotations
+from sys import argv
+from typing import Optional
 
 import numpy as np
 
-# constants
-_ANG2BOHR = 1.8897259886
+from gau_pes.data import _ANG2BOHR, PERIODIC_TABLE
 
 
 class GauDriver:
-    def __init__(self) -> None:
+    # stdio
+    layer: str
+    input_file: str
+    output_file: str
+    msg_file: str
+    fchk_file: str
+    mat_el_file: str
+
+    # Gaussian input data
+    natom: int
+    derivs: int
+    charge: int
+    multiplicity: int
+
+    # external infomation
+    do_gradient: bool = False
+    do_hessian: bool = False
+
+    # molecular infomation
+    sysmbols: list[str]
+    atoms_nuc: list[int]
+    coords: np.ndarray
+
+    @staticmethod
+    def from_stdio() -> GauDriver:
         (layer, InputFile, OutputFile, MsgFile,
-         FChkFile, MatElFile) = sys.argv[1:]
+            FChkFile, MatElFile) = argv[1:]
+        return GauDriver(layer, InputFile, OutputFile, MsgFile,
+                         FChkFile, MatElFile)
 
+    def __init__(self, layer: str, input_file: str, output_file: str, msg_file: str, fchk_file: str, mat_el_file: str) -> None:
         self.layer = layer
-        self.input_file = InputFile
-        self.output_file = OutputFile
-        self.msg_file = MsgFile
-        self.fchk_file = FChkFile
-        self.mat_el_file = MatElFile
+        self.input_file = input_file
+        self.output_file = output_file
+        self.msg_file = msg_file
+        self.fchk_file = fchk_file
+        self.mat_el_file = mat_el_file
 
-        coords = []
+        coords: list[list[float]] = []
+        atoms_nuc: list[int] = []
+        sysmbols: list[str] = []
         with open(self.input_file, "r") as f:
             (natom, derivs, charge, spin) = \
                 [int(x) for x in f.readline().split()]
@@ -27,20 +56,28 @@ class GauDriver:
             self.natom = natom
             self.derivs = derivs
             self.charge = charge
-            self.spin = spin
-
+            self.multiplicity = spin
             for _ in range(self.natom):
                 arr = f.readline().split()
+                nuc = int(arr[0])
+                atoms_nuc.append(nuc)
+                sysmbols.append(PERIODIC_TABLE[nuc-1])
                 coord = [(float(x) / _ANG2BOHR) for x in arr[1:4]]
                 coords.append(coord)
 
+        if self.derivs in [1, 2]:
+            self.do_gradient = True
+        if self.derivs == 2:
+            self.do_hessian = True
+
+        self.atoms_nuc = atoms_nuc
         self.coords = np.array(coords)
 
     def write(
         self,
         energy: float,
-        gradients: Union[np.array, None],
-        force_constants: Union[np.array, None],
+        gradients: Optional[np.array],
+        force_constants: Optional[np.array],
     ) -> None:
         contents = []
 
@@ -75,3 +112,15 @@ class GauDriver:
 
         with open(self.output_file, "w") as f:
             f.write(contents)
+
+    def xyz(self, comment: str = "") -> str:
+        xyz_str = f"{self.natom}\n{comment}\n"
+        for sym, coord in zip(self.sysmbols, self.coords):
+            xyz_str += f"  {sym} {coord[0]:>23.17e} {coord[1]:>23.17e} {coord[2]:>23.17e}\n"
+        return xyz_str
+
+    def pyscf_atom(self) -> str:
+        atom_str = ""
+        for nuc, coord in zip(self.atoms_nuc, self.coords):
+            atom_str += f"{nuc} {coord[0]:>23.17e} {coord[1]:>23.17e} {coord[2]:>23.17e};"
+        return atom_str

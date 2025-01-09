@@ -48,7 +48,7 @@ class GauDriver:
 
         coords: list[list[float]] = []
         atoms_nuc: list[int] = []
-        sysmbols: list[str] = []
+        symbols: list[str] = []
         with open(self.input_file, "r") as f:
             (natom, derivs, charge, spin) = \
                 [int(x) for x in f.readline().split()]
@@ -61,7 +61,7 @@ class GauDriver:
                 arr = f.readline().split()
                 nuc = int(arr[0])
                 atoms_nuc.append(nuc)
-                sysmbols.append(PERIODIC_TABLE[nuc-1])
+                symbols.append(PERIODIC_TABLE[nuc-1])
                 coord = [(float(x) / _ANG2BOHR) for x in arr[1:4]]
                 coords.append(coord)
 
@@ -71,6 +71,7 @@ class GauDriver:
             self.do_hessian = True
 
         self.atoms_nuc = atoms_nuc
+        self.symbols = symbols
         self.coords = np.array(coords)
 
     def write(
